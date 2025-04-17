@@ -22,7 +22,10 @@ from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Dropou
 from tensorflow.keras.models import load_model
 
 #####
-from dp_mechanisms import laplace
+def laplace(mean, sensitivity, epsilon): # mean : value to be randomized (mean)
+    scale = sensitivity / epsilon
+    rand = random.uniform(0,1) - 0.5 # rand : uniform random variable
+    return mean - scale * np.sign(rand) * np.log(1 - 2 * np.abs(rand))
 
 ##### CODE SECTION
 LATENCY_DICT = {}
@@ -45,8 +48,9 @@ class Client():
         self.data_train = data_train
         self.data_test = data_test
         self.agent_dict = {}
-        self.temp_dir = "log/"+client_name + "_log/" + datetime.now().strftime("%Hh%Mp__%d-%m")
-        os.makedirs(self.temp_dir, exist_ok=True)
+        # self.temp_dir = client_name + "_log/" + datetime.now().strftime("%Hh%Mp__%d-%m")
+        self.temp_dir = "/kaggle/working/"+client_name + "_log_" + datetime.now().strftime("%Hh%Mp__%d-%m")
+        os.mkdir(self.temp_dir)
         
         ## global
         self.global_weights = {}
@@ -219,7 +223,6 @@ class Client():
         # elif self.client_name == 'client_2':
         #     steps_per_epoch = 345
         
-        #steps = int(np.ceil(self.steps_per_epoch / 100))
         model.fit(self.data_train, epochs=5, steps_per_epoch=self.steps_per_epoch, callbacks=[csv_logger])
         model.save(file_path_model)
         
@@ -357,8 +360,7 @@ class Client():
 ############################################## PREDICT + EVALUATE #########################################################          
     def evaluate_accuracy(self, local_weights, local_biases, iteration):
         file_path_model = self.temp_dir+"/model_"+str(iteration)+".keras"
-        model = load_model(file_path_model, compile=False)
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model = load_model(file_path_model)
         model.layers[-1].set_weights([local_weights, local_biases])
         
         if self.client_name=='client_0':

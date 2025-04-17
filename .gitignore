@@ -4,6 +4,7 @@ Processed_Data/
 
 # Bỏ qua all file *.db, *.h5
 *.db
+*.csv
 
 # bỏ qua file py thành thư viện
 __pycache__/
